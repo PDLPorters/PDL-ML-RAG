@@ -4,3 +4,15 @@
 ^blib/
 ^pm_to_blib$
 ^PDL-ML-RAG-
+^\.git/
+^\.github/
+^\.gitignore$
+^dot-git/
+^_alien/
+\.bs$
+\.o$
+\.xsc$
+^lib/.*\.c$
+\.tar\.gz$
+~$
+\.bak$

@@ -1,7 +1,9 @@
 Changes
-lib/PDL/ML/RAG.pm
-Makefile.PL
+LICENSE
 MANIFEST
 MANIFEST.SKIP
+Makefile.PL
 README.md
+examples/quickstart.pl
+lib/PDL/ML/RAG.pm
 t/00-load.t

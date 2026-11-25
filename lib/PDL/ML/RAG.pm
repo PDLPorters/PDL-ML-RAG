@@ -252,6 +252,67 @@ Return the L2-normalized float L<PDL> vector.
 
     $unit = normalize_vec($pdl);
 
+=head1 TUTORIAL
+
+This tutorial builds an end-to-end Retrieval-Augmented Generation (RAG)
+pipeline in idiomatic Perl/PDL: chunking documents with overlap, embedding
+chunks into 1-D C<float> PDL vectors, indexing them in C<PDL::ML::RAG::Store>,
+and querying through C<PDL::ML::RAG::Pipeline>.
+
+    use strict;
+    use warnings;
+    use PDL;
+    use PDL::ML::RAG qw(chunk_text render_prompt normalize_vec);
+
+    # 1. Define an embedder returning a 1-D float PDL vector
+    my $embedder = sub {
+        my ($text) = @_;
+        my $lc = lc($text);
+        return float([
+            ($lc =~ /pdl|ndarray|matrix/  ? 1.0 : 0.0),
+            ($lc =~ /faiss|vector|knn/    ? 1.0 : 0.0),
+            ($lc =~ /rag|chunk|prompt/    ? 1.0 : 0.0),
+        ]);
+    };
+
+    # 2. Define a generator callback (replace with PDL::Llama / API call)
+    my $generator = sub {
+        my ($prompt, $hits) = @_;
+        my $top = $hits->[0];
+        return sprintf 'Based on [%s] (score=%.2f): %s',
+            $top->{metadata}->{src}, $top->{score}, $top->{text};
+    };
+
+    # 3. Assemble the pipeline and ingest documents
+    my $rag = PDL::ML::RAG::Pipeline->new(
+        embedder   => $embedder,
+        generator  => $generator,
+        chunk_size => 120,
+        overlap    => 20,
+    );
+
+    my $n_chunks = $rag->ingest([
+        {
+            text     => 'PDL provides fast n-dimensional ndarray math for Perl.',
+            metadata => { src => 'pdl-docs' },
+        },
+        {
+            text     => 'FAISS accelerates vector similarity and kNN search.',
+            metadata => { src => 'faiss-docs' },
+        },
+        {
+            text     => 'RAG combines document chunking, retrieval, and prompt templates.',
+            metadata => { src => 'rag-docs' },
+        },
+    ]);
+
+    # 4. Query the pipeline
+    my $res = $rag->query('How do I run kNN vector search?', k => 2);
+    print "Answer: $res->{answer}\n";
+
+See C<examples/quickstart.pl> in the distribution for a runnable version of this
+tutorial.
+
 =head1 TYPES
 
 Supports standard real numeric PDL types (C<byte>, C<short>, C<long>, C<longlong>, C<float>, C<double> as supported by the underlying library). Complex types (C<cfloat>, C<cdouble>) are not supported by this backend.
@@ -264,8 +325,11 @@ L<PDL>, L<PDL::FAISS>, L<PDL::DuckDB>, L<PDL::Llama>, L<PDL::Torch>, L<Google::g
 
 C.J. Collier <cjac@google.com>
 
-=head1 LICENSE
+=head1 COPYRIGHT AND LICENSE
 
-Licensed under the Apache License, Version 2.0.
+Copyright 2026 Google LLC
+
+This library is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
